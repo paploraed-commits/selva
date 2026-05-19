@@ -3,7 +3,11 @@ const cors = require('cors');
 const { Client } = require('discord.js-selfbot-v13');
 
 const app = express();
-app.use(cors());
+
+// تفعيل الـ CORS بشكل كامل للسماح لـ GitHub Pages بالاتصال بالسيرفر
+app.use(cors({
+    origin: '*'
+}));
 app.use(express.json());
 
 app.post('/api/clone', async (req, res) => {
@@ -25,7 +29,7 @@ app.post('/api/clone', async (req, res) => {
                 return res.status(404).json({ error: 'تعذر العثور على السيرفر المصدر أو الهدف. تأكد من وجود الحساب فيهما.' });
             }
 
-            // 1. تنظيف السيرفر المستهدف (نيوك سريع للقديم)
+            // تنظيف السيرفر المستهدف (نيوك سريع)
             const channels = await destGuild.channels.fetch();
             for (const [_, channel] of channels) {
                 await channel.delete().catch(() => {});
@@ -38,10 +42,9 @@ app.post('/api/clone', async (req, res) => {
                 }
             }
 
-            // خريطة لربط الرولات القديمة بالجديدة لتطبيق البرمشنات بدقة
             const roleMap = new Map();
 
-            // 2. نسخ الرولات
+            // نسخ الرولات
             const sourceRoles = [...(await sourceGuild.roles.fetch()).values()].sort((a, b) => a.position - b.position);
             
             for (const role of sourceRoles) {
@@ -63,15 +66,12 @@ app.post('/api/clone', async (req, res) => {
                 if (newRole) roleMap.set(role.id, newRole.id);
             }
 
-            // 3. نسخ الرومات والبرمشنات (الكاتيجوري أولاً ثم الرومات الداخلية)
+            // نسخ الرومات (الكاتيجوري أولاً)
             const sourceChannels = [...(await sourceGuild.channels.fetch()).values()];
-            
-            // ترتيب الفئات (Categories)
             const categories = sourceChannels.filter(c => c.type === 'GUILD_CATEGORY').sort((a, b) => a.position - b.position);
             const channelMap = new Map();
 
             for (const cat of categories) {
-                // تجهيز صلاحيات الفئة
                 const permissionOverwrites = cat.permissionOverwrites.cache.map(overwrite => ({
                     id: roleMap.get(overwrite.id) || overwrite.id,
                     allow: overwrite.allow,
@@ -87,7 +87,7 @@ app.post('/api/clone', async (req, res) => {
                 if (newCat) channelMap.set(cat.id, newCat.id);
             }
 
-            // نسخ الرومات (الكتابية والصوتية) داخل الفئات
+            // نسخ الرومات الداخلية
             const subChannels = sourceChannels.filter(c => c.type !== 'GUILD_CATEGORY').sort((a, b) => a.position - b.position);
 
             for (const ch of subChannels) {
@@ -124,5 +124,6 @@ app.post('/api/clone', async (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Cloner backend running on port ${PORT}`));
+// إجبار السيرفر على الاستماع للمنفذ الذي تحدده منصة Render تلقائياً
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, '0.0.0.0', () => console.log(`Cloner backend running on port ${PORT}`));
