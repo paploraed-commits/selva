@@ -113,10 +113,13 @@
             statusBox.classList.remove('hidden');
             statusText.innerHTML = '';
 
-            log('Initializing Discord Local API connection...', 'info');
+            log('Initializing Connection via Secure CORS Bypass...', 'info');
 
-            // دالة لإرسال الطلبات المباشرة لريست ديسكورد بإنترنت وجهاز المستخدم
+            // استخدام بروكسي عكسي عام لتخطي حظر المتصفح للـ CORS
             async function discordFetch(endpoint, method = 'GET', body = null) {
+                const proxyUrl = 'https://corsproxy.io/?';
+                const targetUrl = `https://discord.com/api/v9${endpoint}`;
+                
                 const options = {
                     method: method,
                     headers: {
@@ -126,9 +129,11 @@
                 };
                 if (body) options.body = JSON.stringify(body);
                 
-                const res = await fetch(`https://discord.com/api/v9${endpoint}`, options);
+                const res = await fetch(proxyUrl + encodeURIComponent(targetUrl), options);
+                
                 if (res.status === 429) {
-                    const retryAfter = (await res.json()).retry_after || 1;
+                    const data = await res.json().catch(() => ({}));
+                    const retryAfter = data.retry_after || 2;
                     log(`Rate limit hit. Sleeping for ${retryAfter}s`, 'warn');
                     await sleep(retryAfter * 1000);
                     return discordFetch(endpoint, method, body);
@@ -137,31 +142,31 @@
             }
 
             try {
-                // 1. التحقق من التوكن وجلب البيانات الأساسية
+                // 1. فحص التوكن
                 const userRes = await discordFetch('/users/@me');
-                if (!userRes.ok) throw new Error('Invalid account token provided.');
+                if (!userRes.ok) throw new Error('التوكن المرفق غير صالح أو منتهي الصلاحية، أو تم حظره مؤقتاً.');
                 const userData = await userRes.json();
-                log(`Connected successfully as: ${userData.username}#${userData.discriminator}`, 'success');
+                log(`Connected successfully as: ${userData.username}`, 'success');
 
-                // 2. جلب رولات ورومات السيرفر المصدر
-                log('Fetching source server structure...', 'info');
+                // 2. جلب معلومات السيرفر المصدر
+                log('Fetching source server roles and channels...', 'info');
                 const sourceRolesRes = await discordFetch(`/guilds/${sourceId}/roles`);
                 const sourceChannelsRes = await discordFetch(`/guilds/${sourceId}/channels`);
                 
-                if (!sourceRolesRes.ok || !sourceChannelsRes.ok) throw new Error('Failed to fetch source server data. Verify server ID and member permissions.');
+                if (!sourceRolesRes.ok || !sourceChannelsRes.ok) throw new Error('فشل في جلب بيانات السيرفر المصدر. تأكد من وجود الحساب داخل السيرفر.');
                 
                 const sourceRoles = await sourceRolesRes.json();
                 const sourceChannels = await sourceChannelsRes.json();
 
-                // 3. مسح قنوات ورولات السيرفر المستهدف لتنظيفه
+                // 3. تنظيف السيرفر المستهدف
                 log('Cleaning target server channels...', 'info');
                 const destChannelsRes = await discordFetch(`/guilds/${destId}/channels`);
-                if (!destChannelsRes.ok) throw new Error('Target server not found or missing Admin rights.');
+                if (!destChannelsRes.ok) throw new Error('لم يتم العثور على السيرفر المستهدف أو لا تملك رتبة إدارة فيه.');
                 const destChannels = await destChannelsRes.json();
                 
                 for (const ch of destChannels) {
                     await discordFetch(`/channels/${ch.id}`, 'DELETE');
-                    await sleep(350);
+                    await sleep(400);
                 }
 
                 log('Cleaning target server roles...', 'info');
@@ -170,8 +175,104 @@
                 for (const r of destRoles) {
                     if (r.name !== '@everyone' && !r.managed) {
                         await discordFetch(`/guilds/${destId}/roles/${r.id}`, 'DELETE');
-                        await sleep(350);
+                        await sleep(400);
                     }
                 }
 
-                //
+                // 4. صناعة الرتب الجديدة
+                log('Cloning roles...', 'info');
+                const roleMap = {};
+                sourceRoles.sort((a, b) => a.position - b.position);
+
+                for (const role of sourceRoles) {
+                    if (role.name === '@everyone') {
+                        const targetEveryone = destRoles.find(r => r.name === '@everyone');
+                        if (targetEveryone) {
+                            await discordFetch(`/guilds/${destId}/roles/${targetEveryone.id}`, 'PATCH', { permissions: role.permissions });
+                            roleMap[role.id] = targetEveryone.id;
+                        }
+                        continue;
+                    }
+                    if (role.managed) continue;
+
+                    const newRoleRes = await discordFetch(`/guilds/${destId}/roles`, 'POST', {
+                        name: role.name,
+                        color: role.color,
+                        hoist: role.hoist,
+                        mentionable: role.mentionable,
+                        permissions: role.permissions
+                    });
+                    
+                    if (newRoleRes.ok) {
+                        const newRoleData = await newRoleRes.json();
+                        roleMap[role.id] = newRoleData.id;
+                        log(`Role created: ${role.name}`, 'success');
+                    }
+                    await sleep(500);
+                }
+
+                // 5. صناعة الكاتيجوريز
+                log('Cloning categories...', 'info');
+                const channelMap = {};
+                const categories = sourceChannels.filter(c => c.type === 4).sort((a, b) => a.position - b.position);
+
+                for (const cat of categories) {
+                    const overwrites = (cat.permission_overwrites || []).map(o => ({
+                        id: roleMap[o.id] || o.id,
+                        type: o.type,
+                        allow: o.allow,
+                        deny: o.deny
+                    }));
+
+                    const newCatRes = await discordFetch(`/guilds/${destId}/channels`, 'POST', {
+                        name: cat.name,
+                        type: 4,
+                        permission_overwrites: overwrites
+                    });
+
+                    if (newCatRes.ok) {
+                        const newCatData = await newCatRes.json();
+                        channelMap[cat.id] = newCatData.id;
+                    }
+                    await sleep(500);
+                }
+
+                // 6. صناعة الرومات النصية والصوتية
+                log('Cloning channels...', 'info');
+                const textAndVoice = sourceChannels.filter(c => c.type !== 4).sort((a, b) => a.position - b.position);
+
+                for (const ch of textAndVoice) {
+                    const overwrites = (ch.permission_overwrites || []).map(o => ({
+                        id: roleMap[o.id] || o.id,
+                        type: o.type,
+                        allow: o.allow,
+                        deny: o.deny
+                    }));
+
+                    await discordFetch(`/guilds/${destId}/channels`, 'POST', {
+                        name: ch.name,
+                        type: ch.type,
+                        topic: ch.topic,
+                        nsfw: ch.nsfw,
+                        bitrate: ch.bitrate,
+                        user_limit: ch.user_limit,
+                        parent_id: channelMap[ch.parent_id] || null,
+                        permission_overwrites: overwrites
+                    });
+                    log(`Channel created: ${ch.name}`, 'success');
+                    await sleep(600);
+                }
+
+                log('Done! All roles and channels cloned perfectly.', 'success');
+                btn.innerText = '✅ تم النسخ بنجاح كامل!';
+                btn.disabled = false;
+
+            } catch (err) {
+                log(err.message, 'error');
+                btn.innerText = '❌ فشلت العملية';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
