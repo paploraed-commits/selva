@@ -3,14 +3,13 @@ const { Client } = require('discord.js-selfbot-v13');
 
 const app = express();
 
-// إعداد ترويسات الـ CORS يدوياً لضمان قبول الطلبات من GitHub Pages بدون مشاكل
+// إعداد ترويسات الـ CORS يدوياً لضمان قبول الطلبات من GitHub Pages بدون حظر المتصفح
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
     res.setHeader('Access-Control-Allow-Credentials', true);
     
-    // التعامل مع طلبات التمهيد (Preflight Requests)
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
@@ -19,9 +18,9 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// مسار فحص حالة السيرفر للتأكد من أنه يعمل
+// إضافة هذا المسار ليعطيك رسالة ترحيبية بدلاً من Cannot GET /
 app.get('/', (req, res) => {
-    res.send('Selva Cloner Backend is Online!');
+    res.send('<h1>Selva Cloner Backend is Online! 🚀</h1>');
 });
 
 app.post('/api/clone', async (req, res) => {
@@ -43,7 +42,7 @@ app.post('/api/clone', async (req, res) => {
                 return res.status(404).json({ error: 'تعذر العثور على السيرفر المصدر أو الهدف.' });
             }
 
-            // تنظيف الرومات القديمة بالسيرفر المستهدف
+            // تنظيف الرومات القديمة
             const channels = await destGuild.channels.fetch();
             for (const [_, channel] of channels) {
                 await channel.delete().catch(() => {});
@@ -122,7 +121,7 @@ app.post('/api/clone', async (req, res) => {
             }
 
             client.destroy();
-            return res.json({ message: 'تمت عملية محاكاة ونسخ السيرفر بالكامل بنجاح!' });
+            return res.json({ message: 'تمت عملية محاكاة ونسخ السيرفر بالكامل بنجاح تام!' });
 
         } catch (error) {
             client.destroy();
@@ -135,6 +134,5 @@ app.post('/api/clone', async (req, res) => {
     });
 });
 
-// تعيين المنفذ المتوافق مع خوادم Render تلقائياً
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => console.log(`Backend service listening on port ${PORT}`));
