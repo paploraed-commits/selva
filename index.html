@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>متجر سيلفا | Selva Store</title>
+    <title>متجر سيلفا | Selva Cloner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: white; font-family: 'Segoe UI', sans-serif; }
@@ -14,8 +14,8 @@
             display: inline-block;
             text-align: center;
         }
-        .purple-btn:hover { transform: scale(1.05); filter: brightness(1.2); }
-        .card { background-color: #111; border: 1px solid #222; transition: 0.3s; display: flex; flex-direction: column; justify-content: space-between; }
+        .purple-btn:hover { transform: scale(1.02); filter: brightness(1.2); }
+        .card { background-color: #111; border: 1px solid #222; transition: 0.3s; }
         .card:hover { border-color: #6d28d9; }
         
         .hero-banner {
@@ -36,6 +36,7 @@
             align-items: center;
             gap: 6px;
         }
+        input::placeholder { color: #555; }
     </style>
 </head>
 <body>
@@ -50,66 +51,91 @@
         </div>
     </nav>
 
-    <header class="max-w-6xl mx-auto mt-8 px-4">
-        <div class="hero-banner h-[250px] flex flex-col items-center justify-center text-center p-8 border border-gray-800 shadow-2xl">
-            <h1 class="text-5xl font-black gold-text mb-2 drop-shadow-2xl">متجر سيلفا</h1>
-            <p class="text-gray-200 text-lg max-w-2xl font-medium">كل ما تحتاجه لبرمجة وتجهيز سيرفرك في مكان واحد</p>
+    <header class="max-w-4xl mx-auto mt-8 px-4">
+        <div class="hero-banner h-[200px] flex flex-col items-center justify-center text-center p-8 border border-gray-800 shadow-2xl">
+            <h1 class="text-4xl font-black gold-text mb-2 drop-shadow-2xl">أداة سيلفا للنسخ والنيوك</h1>
+            <p class="text-gray-200 text-md max-w-2xl font-medium">انسخ سيرفرك بالكامل (رومات، رولات، وصلاحيات) بثوانٍ وبدون برامج</p>
         </div>
     </header>
 
-    <section class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 px-6 py-12 text-right" dir="rtl">
-        
-        <div class="card p-8 rounded-3xl text-center">
-            <div>
-                <div class="text-5xl mb-4">🚀</div>
-                <h3 class="text-2xl font-bold mb-2 text-white">سيلفا بوت بروجكتس</h3>
-                <p class="text-gray-500 mb-6 text-sm">مشاريع برمجية جاهزة للتشغيل المباشر</p>
-            </div>
-            <div class="flex flex-col gap-3 mt-auto">
-                <a href="https://selva.zbni.co/u/ePbIr" target="_blank" class="purple-btn w-full py-3 rounded-xl font-bold">📄 مشروع واحد (12 ريال)</a>
-                <a href="https://selva.zbni.co/u/9CmdH" target="_blank" class="bg-green-600 hover:bg-green-700 w-full py-3 rounded-xl font-bold transition">📦 كل المشاريع (30 ريال)</a>
+    <main class="max-w-2xl mx-auto px-4 py-8">
+        <div class="card p-8 rounded-3xl shadow-xl">
+            <h2 class="text-xl font-bold mb-6 border-b border-gray-800 pb-3 gold-text flex items-center gap-2">🎯 لوحة التحكم بالنسخ</h2>
+            
+            <form id="clonerForm" class="space-y-5 text-right">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">توكن الحساب أو البوت (Token)</label>
+                    <input type="password" id="token" required placeholder="أدخل التوكن هنا..." class="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-left font-mono focus:outline-none focus:border-purple-600 transition text-white">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">آيدي السيرفر المصدر (الي بدك تنسخ منه)</label>
+                        <input type="text" id="sourceId" required placeholder="Source Server ID" class="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-left font-mono focus:outline-none focus:border-purple-600 transition text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">آيدي السيرفر الهدف (الي بدك تنسخ له)</label>
+                        <input type="text" id="destId" required placeholder="Destination Server ID" class="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-left font-mono focus:outline-none focus:border-purple-600 transition text-white">
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="purple-btn w-full py-4 rounded-xl font-bold text-lg mt-4 shadow-lg shadow-purple-900/20">
+                    🚀 ابدأ عملية النسخ الفوري
+                </button>
+            </form>
+
+            <div id="statusBox" class="hidden mt-6 bg-black/60 border border-gray-800 rounded-xl p-4 text-sm font-mono text-left dir-ltr max-h-[150px] overflow-y-auto">
+                <div id="statusText" class="text-gray-400">في انتظار بدء العملية...</div>
             </div>
         </div>
-
-        <div class="card p-8 rounded-3xl text-center">
-            <div>
-                <div class="text-5xl mb-4">🛠️</div>
-                <h3 class="text-2xl font-bold mb-2 text-white">برمجة سيرفر كامل</h3>
-                <p class="text-gray-500 mb-6 text-sm">تنسيق وتجهيز السيرفر من الألف إلى الياء</p>
-            </div>
-            <div class="flex flex-col gap-3 mt-auto">
-                <a href="https://selva.zbni.co/u/sp2ML" target="_blank" class="purple-btn w-full py-3 rounded-xl font-bold">🤖 بوتات جاهزة (30 ريال)</a>
-                <a href="https://selva.zbni.co/u/pPUHf" target="_blank" class="bg-indigo-600 hover:bg-indigo-700 w-full py-3 rounded-xl font-bold transition">💻 بوتات خاصة (50 ريال)</a>
-            </div>
-        </div>
-
-        <div class="card p-8 rounded-3xl text-center">
-            <div>
-                <div class="text-5xl mb-4">🎓</div>
-                <h3 class="text-2xl font-bold mb-2 text-white">كورسات البرمجة</h3>
-                <p class="text-gray-500 mb-6 text-sm">تعلم بناء بوتاتك بنفسك وبكل احترافية</p>
-            </div>
-            <div class="flex flex-col gap-3 mt-auto">
-                <a href="https://selva.zbni.co/u/Xx0kc" target="_blank" class="purple-btn w-full py-3 rounded-xl font-bold">📅 شهر واحد (50 ريال)</a>
-                <a href="https://selva.zbni.co/u/jTtHC" target="_blank" class="bg-orange-600 hover:bg-orange-700 w-full py-3 rounded-xl font-bold transition">🔥 شهرين - عرض (70 ريال)</a>
-            </div>
-        </div>
-
-    </section>
-
-    <div class="max-w-4xl mx-auto px-6 mb-12 text-center">
-        <p class="text-gray-500 text-sm mb-6">💳 طرق الدفع المدعومة</p>
-        <div class="flex flex-wrap justify-center gap-4">
-            <span class="payment-tag">🍎 Apple Pay</span>
-            <span class="payment-tag">💳 Mada / Visa</span>
-            <span class="payment-tag">📱 STC Pay</span>
-            <span class="payment-tag">🅿️ PayPal</span>
-        </div>
-    </div>
+    </main>
 
     <footer class="max-w-4xl mx-auto pb-10 text-center border-t border-gray-900 pt-8">
         <p class="text-gray-800 text-[10px]">&copy; 2026 جميع الحقوق محفوظة لمتجر سيلفا</p>
     </footer>
 
+    <script>
+        document.getElementById('clonerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const token = document.getElementById('token').value;
+            const sourceId = document.getElementById('sourceId').value;
+            const destId = document.getElementById('destId').value;
+            const btn = document.getElementById('submitBtn');
+            const statusBox = document.getElementById('statusBox');
+            const statusText = document.getElementById('statusText');
+
+            btn.disabled = true;
+            btn.innerText = '⏳ جاري الاتصال بالسيرفر الخلفي...';
+            statusBox.classList.remove('hidden');
+            statusText.innerHTML = '<span class="text-yellow-500">[INFO]</span> Connecting to backend backend...';
+
+            try {
+                // استبدل هذا الرابط برابط السيرفر الخلفي الخاص بك بعد رفعه (مثال: Render أو VPS)
+                const BACKEND_URL = 'http://localhost:3000/api/clone'; 
+
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, sourceId, destId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusText.innerHTML += `<br><span class="text-green-500">[SUCCESS]</span> ${data.message}`;
+                    btn.innerText = '✅ تم النسخ بنجاح!';
+                } else {
+                    statusText.innerHTML += `<br><span class="text-red-500">[ERROR]</span> ${data.error}`;
+                    btn.innerText = '❌ فشلت العملية';
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                statusText.innerHTML += `<br><span class="text-red-500">[ERROR]</span> تعذر الاتصال بالسيرفر الخلفي المخصص للنسخ.`;
+                btn.innerText = '❌ خطأ في الاتصال';
+                btn.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
