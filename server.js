@@ -1,14 +1,28 @@
 const express = require('express');
-const cors = require('cors');
 const { Client } = require('discord.js-selfbot-v13');
 
 const app = express();
 
-// تفعيل الـ CORS بشكل كامل للسماح لـ GitHub Pages بالاتصال بالسيرفر
-app.use(cors({
-    origin: '*'
-}));
+// إعداد ترويسات الـ CORS يدوياً لضمان قبول الطلبات من GitHub Pages بدون مشاكل
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    
+    // التعامل مع طلبات التمهيد (Preflight Requests)
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 app.use(express.json());
+
+// مسار فحص حالة السيرفر للتأكد من أنه يعمل
+app.get('/', (req, res) => {
+    res.send('Selva Cloner Backend is Online!');
+});
 
 app.post('/api/clone', async (req, res) => {
     const { token, sourceId, destId } = req.body;
@@ -26,15 +40,16 @@ app.post('/api/clone', async (req, res) => {
 
             if (!sourceGuild || !destGuild) {
                 client.destroy();
-                return res.status(404).json({ error: 'تعذر العثور على السيرفر المصدر أو الهدف. تأكد من وجود الحساب فيهما.' });
+                return res.status(404).json({ error: 'تعذر العثور على السيرفر المصدر أو الهدف.' });
             }
 
-            // تنظيف السيرفر المستهدف (نيوك سريع)
+            // تنظيف الرومات القديمة بالسيرفر المستهدف
             const channels = await destGuild.channels.fetch();
             for (const [_, channel] of channels) {
                 await channel.delete().catch(() => {});
             }
 
+            // تنظيف الرولات القديمة
             const roles = await destGuild.roles.fetch();
             for (const [_, role] of roles) {
                 if (role.name !== '@everyone' && !role.managed) {
@@ -43,13 +58,11 @@ app.post('/api/clone', async (req, res) => {
             }
 
             const roleMap = new Map();
-
-            // نسخ الرولات
             const sourceRoles = [...(await sourceGuild.roles.fetch()).values()].sort((a, b) => a.position - b.position);
             
             for (const role of sourceRoles) {
                 if (role.name === '@everyone') {
-                    await destGuild.roles.everyone.setPermissions(role.permissions);
+                    await destGuild.roles.everyone.setPermissions(role.permissions).catch(() => {});
                     roleMap.set(role.id, destGuild.roles.everyone.id);
                     continue;
                 }
@@ -66,7 +79,6 @@ app.post('/api/clone', async (req, res) => {
                 if (newRole) roleMap.set(role.id, newRole.id);
             }
 
-            // نسخ الرومات (الكاتيجوري أولاً)
             const sourceChannels = [...(await sourceGuild.channels.fetch()).values()];
             const categories = sourceChannels.filter(c => c.type === 'GUILD_CATEGORY').sort((a, b) => a.position - b.position);
             const channelMap = new Map();
@@ -87,7 +99,6 @@ app.post('/api/clone', async (req, res) => {
                 if (newCat) channelMap.set(cat.id, newCat.id);
             }
 
-            // نسخ الرومات الداخلية
             const subChannels = sourceChannels.filter(c => c.type !== 'GUILD_CATEGORY').sort((a, b) => a.position - b.position);
 
             for (const ch of subChannels) {
@@ -111,19 +122,19 @@ app.post('/api/clone', async (req, res) => {
             }
 
             client.destroy();
-            return res.json({ message: 'تم نسخ الرولات، الرومات، والصلاحيات بالكامل وبنجاح التام!' });
+            return res.json({ message: 'تمت عملية محاكاة ونسخ السيرفر بالكامل بنجاح!' });
 
         } catch (error) {
             client.destroy();
-            return res.status(500).json({ error: 'حدث خطأ أثناء النسخ: ' + error.message });
+            return res.status(500).json({ error: 'حدث خطأ غير متوقع: ' + error.message });
         }
     });
 
     client.login(token).catch(err => {
-        res.status(401).json({ error: 'التوكن المدخل غير صحيح أو انتهت صلاحيته.' });
+        res.status(401).json({ error: 'التوكن المرفق غير صالح أو منتهي الصلاحية.' });
     });
 });
 
-// إجبار السيرفر على الاستماع للمنفذ الذي تحدده منصة Render تلقائياً
+// تعيين المنفذ المتوافق مع خوادم Render تلقائياً
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Cloner backend running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Backend service listening on port ${PORT}`));
