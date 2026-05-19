@@ -24,18 +24,6 @@
             background-position: center;
             border-radius: 24px;
         }
-
-        .payment-tag {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid #333;
-            padding: 8px 15px;
-            border-radius: 12px;
-            font-size: 13px;
-            color: #aaa;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
         input::placeholder { color: #555; }
     </style>
 </head>
@@ -106,12 +94,12 @@
             const statusText = document.getElementById('statusText');
 
             btn.disabled = true;
-            btn.innerText = '⏳ جاري الاتصال بالسيرفر الخلفي...';
+            btn.innerText = '⏳ جاري عملية النسخ الحارق...';
             statusBox.classList.remove('hidden');
-            statusText.innerHTML = '<span class="text-yellow-500">[INFO]</span> Connecting to backend...';
+            statusText.innerHTML = '<span class="text-yellow-500">[INFO]</span> Connecting to backend cloner service...';
 
             try {
-                // تم ربط السيرفر المرفوع على Render بنجاح هنا
+                // تم ربط الرابط المباشر للخدمة بنجاح هنا
                 const BACKEND_URL = 'https://selva-backend-2lu6.onrender.com/api/clone'; 
 
                 const response = await fetch(BACKEND_URL, {
@@ -131,7 +119,7 @@
                     btn.disabled = false;
                 }
             } catch (err) {
-                statusText.innerHTML += `<br><span class="text-red-500">[ERROR]</span> تعذر الاتصال بالسيرفر الخلفي المخصص للنسخ.`;
+                statusText.innerHTML += `<br><span class="text-red-500">[ERROR]</span> تعذر معالجة الطلب أو تجاوز وقت الاستجابة المسموح.`;
                 btn.innerText = '❌ خطأ في الاتصال';
                 btn.disabled = false;
             }
