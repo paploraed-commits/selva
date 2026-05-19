@@ -1,0 +1,10 @@
+{
+  "name": "selva-cloner-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "discord.js-selfbot-v13": "^2.11.1"
+  }
+}
