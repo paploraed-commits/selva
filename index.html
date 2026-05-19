@@ -108,11 +108,11 @@
             btn.disabled = true;
             btn.innerText = '⏳ جاري الاتصال بالسيرفر الخلفي...';
             statusBox.classList.remove('hidden');
-            statusText.innerHTML = '<span class="text-yellow-500">[INFO]</span> Connecting to backend backend...';
+            statusText.innerHTML = '<span class="text-yellow-500">[INFO]</span> Connecting to backend...';
 
             try {
-                // استبدل هذا الرابط برابط السيرفر الخلفي الخاص بك بعد رفعه (مثال: Render أو VPS)
-                const BACKEND_URL = 'http://localhost:3000/api/clone'; 
+                // تم ربط السيرفر المرفوع على Render بنجاح هنا
+                const BACKEND_URL = 'https://selva-backend-2lu6.onrender.com/api/clone'; 
 
                 const response = await fetch(BACKEND_URL, {
                     method: 'POST',
