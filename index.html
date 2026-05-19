@@ -26,7 +26,6 @@
         }
         input::placeholder { color: #555; }
         
-        /* تصميم صندوق اللوقات المتطور */
         .log-box {
             background-color: #080808;
             border: 1px solid #1a1a1a;
@@ -96,7 +95,6 @@
     </footer>
 
     <script>
-        // دالة الطباعة الملونة داخل الكونسول
         const log = (text, type = 'info') => {
             const statusText = document.getElementById('statusText');
             let color = 'text-gray-400'; 
@@ -110,7 +108,6 @@
             const time = new Date().toLocaleTimeString();
             statusText.innerHTML += `<div class="${color} font-mono text-[13px]"><span class="text-gray-600">[${time}]</span> ${prefix} ${text}</div>`;
             
-            // النزول التلقائي لآخر سطر عند طباعة أي لوق جديد
             const statusBox = document.getElementById('statusBox');
             statusBox.scrollTop = statusBox.scrollHeight;
         };
@@ -128,11 +125,10 @@
 
             btn.disabled = true;
             btn.innerText = '⏳ جاري النسخ...';
-            statusText.innerHTML = ''; // تنظيف الكونسول عند البدء
+            statusText.innerHTML = ''; 
 
             log('Initializing secure client-side bypass system...', 'info');
 
-            // استخدام بروكسي عكسي مجاني لتخطي حظر متصفحات الـ CORS
             async function discordFetch(endpoint, method = 'GET', body = null) {
                 const proxyUrl = 'https://corsproxy.io/?';
                 const targetUrl = `https://discord.com/api/v9${endpoint}`;
@@ -159,7 +155,7 @@
             }
 
             try {
-                // 1. فحص التوكن وجلب معلومات صاحب الحساب
+                // 1. فحص التوكن
                 log('Connecting to Discord Gateway API...', 'info');
                 const userRes = await discordFetch('/users/@me');
                 if (!userRes.ok) throw new Error('The token provided is invalid or has expired.');
@@ -189,7 +185,6 @@
                     await sleep(350);
                 }
 
-                // تنظيف رولات السيرفر الجديد
                 log('Starting target server wipeout (Roles)...', 'process');
                 const destRolesRes = await discordFetch(`/guilds/${destId}/roles`);
                 const destRoles = await destRolesRes.json();
@@ -201,9 +196,11 @@
                     }
                 }
 
-                // 4. إنشاء الرتب ومطابقتها
+                // 4. إنشاء الرتب ومطابقتها (تم تعديل الفرز هنا ليتم إنشاؤها من الأسفل إلى الأعلى لتظهر صحيحة)
                 log('Deploying and syncing roles hierarchy...', 'process');
                 const roleMap = {};
+                
+                // ترتيب الرتب تصاعدياً حسب الـ Position لتبنى من الأسفل للأعلى في السيرفر الجديد
                 sourceRoles.sort((a, b) => a.position - b.position);
 
                 for (const role of sourceRoles) {
@@ -291,7 +288,7 @@
                 }
 
                 log('Finished! Cloner job ended with 0 errors.', 'success');
-                btn.innerText = '✅ تم النسخ بنجاح كامل!';
+                btn.innerText = '🚀 ابدأ عملية النسخ المباشر';
                 btn.disabled = false;
 
             } catch (err) {
