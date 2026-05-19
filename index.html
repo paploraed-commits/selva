@@ -25,8 +25,17 @@
             border-radius: 24px;
         }
         input::placeholder { color: #555; }
+        
+        /* تصميم صندوق اللوقات المتطور */
+        .log-box {
+            background-color: #080808;
+            border: 1px solid #1a1a1a;
+            font-family: 'Courier New', Courier, monospace;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
         .log-box::-webkit-scrollbar { width: 6px; }
-        .log-box::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        .log-box::-webkit-scrollbar-thumb { background: #222; border-radius: 4px; }
+        .log-box::-webkit-scrollbar-thumb:hover { background: #6d28d9; }
     </style>
 </head>
 <body>
@@ -74,8 +83,10 @@
                 </button>
             </form>
 
-            <div id="statusBox" class="hidden mt-6 bg-black/60 border border-gray-800 rounded-xl p-4 text-sm font-mono text-left max-h-[250px] overflow-y-auto log-box" style="direction: ltr;">
-                <div id="statusText" class="text-gray-400 space-y-1"></div>
+            <div id="statusBox" class="mt-6 border border-gray-800 rounded-xl p-4 text-sm text-left max-h-[300px] overflow-y-auto log-box" style="direction: ltr;">
+                <div id="statusText" class="text-gray-500 space-y-1">
+                    <div>[SYSTEM] System waiting for actions. Fill inputs and click start...</div>
+                </div>
             </div>
         </div>
     </main>
@@ -85,15 +96,23 @@
     </footer>
 
     <script>
+        // دالة الطباعة الملونة داخل الكونسول
         const log = (text, type = 'info') => {
             const statusText = document.getElementById('statusText');
-            let color = 'text-gray-400';
-            if (type === 'success') color = 'text-green-500';
-            if (type === 'error') color = 'text-red-500';
-            if (type === 'warn') color = 'text-yellow-500';
+            let color = 'text-gray-400'; 
+            let prefix = '[INFO]';
+
+            if (type === 'success') { color = 'text-green-500'; prefix = '[SUCCESS]'; }
+            if (type === 'error') { color = 'text-red-500'; prefix = '[ERROR]'; }
+            if (type === 'warn') { color = 'text-yellow-500'; prefix = '[WARNING]'; }
+            if (type === 'process') { color = 'text-purple-400'; prefix = '[CLONING]'; }
             
-            statusText.innerHTML += `<div class="${color}">[${type.toUpperCase()}] ${text}</div>`;
-            document.getElementById('statusBox').scrollTop = document.getElementById('statusBox').scrollHeight;
+            const time = new Date().toLocaleTimeString();
+            statusText.innerHTML += `<div class="${color} font-mono text-[13px]"><span class="text-gray-600">[${time}]</span> ${prefix} ${text}</div>`;
+            
+            // النزول التلقائي لآخر سطر عند طباعة أي لوق جديد
+            const statusBox = document.getElementById('statusBox');
+            statusBox.scrollTop = statusBox.scrollHeight;
         };
 
         const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -105,17 +124,15 @@
             const sourceId = document.getElementById('sourceId').value.trim();
             const destId = document.getElementById('destId').value.trim();
             const btn = document.getElementById('submitBtn');
-            const statusBox = document.getElementById('statusBox');
             const statusText = document.getElementById('statusText');
 
             btn.disabled = true;
             btn.innerText = '⏳ جاري النسخ...';
-            statusBox.classList.remove('hidden');
-            statusText.innerHTML = '';
+            statusText.innerHTML = ''; // تنظيف الكونسول عند البدء
 
-            log('Initializing Connection via Secure CORS Bypass...', 'info');
+            log('Initializing secure client-side bypass system...', 'info');
 
-            // استخدام بروكسي عكسي عام لتخطي حظر المتصفح للـ CORS
+            // استخدام بروكسي عكسي مجاني لتخطي حظر متصفحات الـ CORS
             async function discordFetch(endpoint, method = 'GET', body = null) {
                 const proxyUrl = 'https://corsproxy.io/?';
                 const targetUrl = `https://discord.com/api/v9${endpoint}`;
@@ -134,7 +151,7 @@
                 if (res.status === 429) {
                     const data = await res.json().catch(() => ({}));
                     const retryAfter = data.retry_after || 2;
-                    log(`Rate limit hit. Sleeping for ${retryAfter}s`, 'warn');
+                    log(`Discord rate limit hit. Pausing for ${retryAfter} seconds to avoid token flag...`, 'warn');
                     await sleep(retryAfter * 1000);
                     return discordFetch(endpoint, method, body);
                 }
@@ -142,45 +159,50 @@
             }
 
             try {
-                // 1. فحص التوكن
+                // 1. فحص التوكن وجلب معلومات صاحب الحساب
+                log('Connecting to Discord Gateway API...', 'info');
                 const userRes = await discordFetch('/users/@me');
-                if (!userRes.ok) throw new Error('التوكن المرفق غير صالح أو منتهي الصلاحية، أو تم حظره مؤقتاً.');
+                if (!userRes.ok) throw new Error('The token provided is invalid or has expired.');
                 const userData = await userRes.json();
-                log(`Connected successfully as: ${userData.username}`, 'success');
+                log(`Successfully authenticated account: ${userData.username}`, 'success');
 
-                // 2. جلب معلومات السيرفر المصدر
-                log('Fetching source server roles and channels...', 'info');
+                // 2. جلب رولات وقنوات السيرفر المصدر
+                log('Reading structural map of the source server...', 'process');
                 const sourceRolesRes = await discordFetch(`/guilds/${sourceId}/roles`);
                 const sourceChannelsRes = await discordFetch(`/guilds/${sourceId}/channels`);
                 
-                if (!sourceRolesRes.ok || !sourceChannelsRes.ok) throw new Error('فشل في جلب بيانات السيرفر المصدر. تأكد من وجود الحساب داخل السيرفر.');
+                if (!sourceRolesRes.ok || !sourceChannelsRes.ok) throw new Error('Could not access source server. Make sure your account is joined in it.');
                 
                 const sourceRoles = await sourceRolesRes.json();
                 const sourceChannels = await sourceChannelsRes.json();
+                log(`Found ${sourceChannels.length} channels and ${sourceRoles.length} roles to clone.`, 'success');
 
-                // 3. تنظيف السيرفر المستهدف
-                log('Cleaning target server channels...', 'info');
+                // 3. تنظيف وقصف قنوات السيرفر الجديد
+                log('Starting target server wipeout (Channels)...', 'process');
                 const destChannelsRes = await discordFetch(`/guilds/${destId}/channels`);
-                if (!destChannelsRes.ok) throw new Error('لم يتم العثور على السيرفر المستهدف أو لا تملك رتبة إدارة فيه.');
+                if (!destChannelsRes.ok) throw new Error('Target server not found or you lack Administrator permission inside it.');
                 const destChannels = await destChannelsRes.json();
                 
                 for (const ch of destChannels) {
-                    await discordFetch(`/channels/${ch.id}`, 'DELETE');
-                    await sleep(400);
+                    const del = await discordFetch(`/channels/${ch.id}`, 'DELETE');
+                    if (del.ok) log(`Deleted channel: ${ch.name}`, 'warn');
+                    await sleep(350);
                 }
 
-                log('Cleaning target server roles...', 'info');
+                // تنظيف رولات السيرفر الجديد
+                log('Starting target server wipeout (Roles)...', 'process');
                 const destRolesRes = await discordFetch(`/guilds/${destId}/roles`);
                 const destRoles = await destRolesRes.json();
                 for (const r of destRoles) {
                     if (r.name !== '@everyone' && !r.managed) {
-                        await discordFetch(`/guilds/${destId}/roles/${r.id}`, 'DELETE');
-                        await sleep(400);
+                        const delRole = await discordFetch(`/guilds/${destId}/roles/${r.id}`, 'DELETE');
+                        if (delRole.ok) log(`Deleted role: ${r.name}`, 'warn');
+                        await sleep(350);
                     }
                 }
 
-                // 4. صناعة الرتب الجديدة
-                log('Cloning roles...', 'info');
+                // 4. إنشاء الرتب ومطابقتها
+                log('Deploying and syncing roles hierarchy...', 'process');
                 const roleMap = {};
                 sourceRoles.sort((a, b) => a.position - b.position);
 
@@ -190,6 +212,7 @@
                         if (targetEveryone) {
                             await discordFetch(`/guilds/${destId}/roles/${targetEveryone.id}`, 'PATCH', { permissions: role.permissions });
                             roleMap[role.id] = targetEveryone.id;
+                            log('Synchronized @everyone basic base permissions.', 'success');
                         }
                         continue;
                     }
@@ -206,13 +229,13 @@
                     if (newRoleRes.ok) {
                         const newRoleData = await newRoleRes.json();
                         roleMap[role.id] = newRoleData.id;
-                        log(`Role created: ${role.name}`, 'success');
+                        log(`Created role successfully: ${role.name}`, 'success');
                     }
-                    await sleep(500);
+                    await sleep(400);
                 }
 
-                // 5. صناعة الكاتيجوريز
-                log('Cloning categories...', 'info');
+                // 5. إنشاء الكاتيجوريز
+                log('Building server infrastructure categories...', 'process');
                 const channelMap = {};
                 const categories = sourceChannels.filter(c => c.type === 4).sort((a, b) => a.position - b.position);
 
@@ -233,12 +256,13 @@
                     if (newCatRes.ok) {
                         const newCatData = await newCatRes.json();
                         channelMap[cat.id] = newCatData.id;
+                        log(`Created Category: ${cat.name}`, 'success');
                     }
-                    await sleep(500);
+                    await sleep(450);
                 }
 
-                // 6. صناعة الرومات النصية والصوتية
-                log('Cloning channels...', 'info');
+                // 6. إنشاء الرومات النصية والصوتية داخل التصنيفات
+                log('Injecting sub-channels (Text & Voice rooms)...', 'process');
                 const textAndVoice = sourceChannels.filter(c => c.type !== 4).sort((a, b) => a.position - b.position);
 
                 for (const ch of textAndVoice) {
@@ -249,21 +273,24 @@
                         deny: o.deny
                     }));
 
-                    await discordFetch(`/guilds/${destId}/channels`, 'POST', {
+                    const newChRes = await discordFetch(`/guilds/${destId}/channels`, 'POST', {
                         name: ch.name,
                         type: ch.type,
-                        topic: ch.topic,
-                        nsfw: ch.nsfw,
-                        bitrate: ch.bitrate,
-                        user_limit: ch.user_limit,
+                        topic: ch.topic || '',
+                        nsfw: ch.nsfw || false,
+                        bitrate: ch.bitrate || 64000,
+                        user_limit: ch.user_limit || 0,
                         parent_id: channelMap[ch.parent_id] || null,
                         permission_overwrites: overwrites
                     });
-                    log(`Channel created: ${ch.name}`, 'success');
-                    await sleep(600);
+                    
+                    if (newChRes.ok) {
+                        log(`Created channel room: #${ch.name}`, 'success');
+                    }
+                    await sleep(500);
                 }
 
-                log('Done! All roles and channels cloned perfectly.', 'success');
+                log('Finished! Cloner job ended with 0 errors.', 'success');
                 btn.innerText = '✅ تم النسخ بنجاح كامل!';
                 btn.disabled = false;
 
