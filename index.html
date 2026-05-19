@@ -25,6 +25,8 @@
             border-radius: 24px;
         }
         input::placeholder { color: #555; }
+        .log-box::-webkit-scrollbar { width: 6px; }
+        .log-box::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -41,39 +43,39 @@
 
     <header class="max-w-4xl mx-auto mt-8 px-4">
         <div class="hero-banner h-[200px] flex flex-col items-center justify-center text-center p-8 border border-gray-800 shadow-2xl">
-            <h1 class="text-4xl font-black gold-text mb-2 drop-shadow-2xl">أداة سيلفا للنسخ والنيوك</h1>
-            <p class="text-gray-200 text-md max-w-2xl font-medium">انسخ سيرفرك بالكامل (رومات، رولات، وصلاحيات) بثوانٍ وبدون برامج</p>
+            <h1 class="text-4xl font-black gold-text mb-2 drop-shadow-2xl">أداة سيلفا للنسخ الفوري</h1>
+            <p class="text-gray-200 text-md max-w-2xl font-medium">انسخ الرومات، الرولات، والصلاحيات مباشرة عبر المتصفح وبأعلى سرعة آمنة</p>
         </div>
     </header>
 
     <main class="max-w-2xl mx-auto px-4 py-8">
         <div class="card p-8 rounded-3xl shadow-xl">
-            <h2 class="text-xl font-bold mb-6 border-b border-gray-800 pb-3 gold-text flex items-center gap-2">🎯 لوحة التحكم بالنسخ</h2>
+            <h2 class="text-xl font-bold mb-6 border-b border-gray-800 pb-3 gold-text flex items-center gap-2">🎯 لوحة التحكم بالنسخ المستقر</h2>
             
             <form id="clonerForm" class="space-y-5 text-right">
                 <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-2">توكن الحساب أو البوت (Token)</label>
-                    <input type="password" id="token" required placeholder="أدخل التوكن هنا..." class="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-left font-mono focus:outline-none focus:border-purple-600 transition text-white">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">توكن الحساب (Account Token)</label>
+                    <input type="password" id="token" required placeholder="أدخل توكن الحساب هنا..." class="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-left font-mono focus:outline-none focus:border-purple-600 transition text-white">
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-2">آيدي السيرفر المصدر (الي بدك تنسخ منه)</label>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">آيدي السيرفر المصدر (المراد نسخه)</label>
                         <input type="text" id="sourceId" required placeholder="Source Server ID" class="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-left font-mono focus:outline-none focus:border-purple-600 transition text-white">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-2">آيدي السيرفر الهدف (الي بدك تنسخ له)</label>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">آيدي السيرفر الهدف (الجديد)</label>
                         <input type="text" id="destId" required placeholder="Destination Server ID" class="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-left font-mono focus:outline-none focus:border-purple-600 transition text-white">
                     </div>
                 </div>
 
                 <button type="submit" id="submitBtn" class="purple-btn w-full py-4 rounded-xl font-bold text-lg mt-4 shadow-lg shadow-purple-900/20">
-                    🚀 ابدأ عملية النسخ الفوري
+                    🚀 ابدأ عملية النسخ المباشر
                 </button>
             </form>
 
-            <div id="statusBox" class="hidden mt-6 bg-black/60 border border-gray-800 rounded-xl p-4 text-sm font-mono text-left dir-ltr max-h-[150px] overflow-y-auto">
-                <div id="statusText" class="text-gray-400">في انتظار بدء العملية...</div>
+            <div id="statusBox" class="hidden mt-6 bg-black/60 border border-gray-800 rounded-xl p-4 text-sm font-mono text-left max-h-[250px] overflow-y-auto log-box" style="direction: ltr;">
+                <div id="statusText" class="text-gray-400 space-y-1"></div>
             </div>
         </div>
     </main>
@@ -83,47 +85,93 @@
     </footer>
 
     <script>
+        const log = (text, type = 'info') => {
+            const statusText = document.getElementById('statusText');
+            let color = 'text-gray-400';
+            if (type === 'success') color = 'text-green-500';
+            if (type === 'error') color = 'text-red-500';
+            if (type === 'warn') color = 'text-yellow-500';
+            
+            statusText.innerHTML += `<div class="${color}">[${type.toUpperCase()}] ${text}</div>`;
+            document.getElementById('statusBox').scrollTop = document.getElementById('statusBox').scrollHeight;
+        };
+
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
         document.getElementById('clonerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const token = document.getElementById('token').value;
-            const sourceId = document.getElementById('sourceId').value;
-            const destId = document.getElementById('destId').value;
+            const token = document.getElementById('token').value.trim();
+            const sourceId = document.getElementById('sourceId').value.trim();
+            const destId = document.getElementById('destId').value.trim();
             const btn = document.getElementById('submitBtn');
             const statusBox = document.getElementById('statusBox');
             const statusText = document.getElementById('statusText');
 
             btn.disabled = true;
-            btn.innerText = '⏳ جاري عملية النسخ الحارق...';
+            btn.innerText = '⏳ جاري النسخ...';
             statusBox.classList.remove('hidden');
-            statusText.innerHTML = '<span class="text-yellow-500">[INFO]</span> Connecting to backend cloner service...';
+            statusText.innerHTML = '';
+
+            log('Initializing Discord Local API connection...', 'info');
+
+            // دالة لإرسال الطلبات المباشرة لريست ديسكورد بإنترنت وجهاز المستخدم
+            async function discordFetch(endpoint, method = 'GET', body = null) {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Authorization': token,
+                        'Content-Type': 'application/json'
+                    }
+                };
+                if (body) options.body = JSON.stringify(body);
+                
+                const res = await fetch(`https://discord.com/api/v9${endpoint}`, options);
+                if (res.status === 429) {
+                    const retryAfter = (await res.json()).retry_after || 1;
+                    log(`Rate limit hit. Sleeping for ${retryAfter}s`, 'warn');
+                    await sleep(retryAfter * 1000);
+                    return discordFetch(endpoint, method, body);
+                }
+                return res;
+            }
 
             try {
-                // تم ربط الرابط المباشر للخدمة بنجاح هنا
-                const BACKEND_URL = 'https://selva-backend-2lu6.onrender.com/api/clone'; 
+                // 1. التحقق من التوكن وجلب البيانات الأساسية
+                const userRes = await discordFetch('/users/@me');
+                if (!userRes.ok) throw new Error('Invalid account token provided.');
+                const userData = await userRes.json();
+                log(`Connected successfully as: ${userData.username}#${userData.discriminator}`, 'success');
 
-                const response = await fetch(BACKEND_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token, sourceId, destId })
-                });
+                // 2. جلب رولات ورومات السيرفر المصدر
+                log('Fetching source server structure...', 'info');
+                const sourceRolesRes = await discordFetch(`/guilds/${sourceId}/roles`);
+                const sourceChannelsRes = await discordFetch(`/guilds/${sourceId}/channels`);
+                
+                if (!sourceRolesRes.ok || !sourceChannelsRes.ok) throw new Error('Failed to fetch source server data. Verify server ID and member permissions.');
+                
+                const sourceRoles = await sourceRolesRes.json();
+                const sourceChannels = await sourceChannelsRes.json();
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    statusText.innerHTML += `<br><span class="text-green-500">[SUCCESS]</span> ${data.message}`;
-                    btn.innerText = '✅ تم النسخ بنجاح!';
-                } else {
-                    statusText.innerHTML += `<br><span class="text-red-500">[ERROR]</span> ${data.error}`;
-                    btn.innerText = '❌ فشلت العملية';
-                    btn.disabled = false;
+                // 3. مسح قنوات ورولات السيرفر المستهدف لتنظيفه
+                log('Cleaning target server channels...', 'info');
+                const destChannelsRes = await discordFetch(`/guilds/${destId}/channels`);
+                if (!destChannelsRes.ok) throw new Error('Target server not found or missing Admin rights.');
+                const destChannels = await destChannelsRes.json();
+                
+                for (const ch of destChannels) {
+                    await discordFetch(`/channels/${ch.id}`, 'DELETE');
+                    await sleep(350);
                 }
-            } catch (err) {
-                statusText.innerHTML += `<br><span class="text-red-500">[ERROR]</span> تعذر معالجة الطلب أو تجاوز وقت الاستجابة المسموح.`;
-                btn.innerText = '❌ خطأ في الاتصال';
-                btn.disabled = false;
-            }
-        });
-    </script>
-</body>
-</html>
+
+                log('Cleaning target server roles...', 'info');
+                const destRolesRes = await discordFetch(`/guilds/${destId}/roles`);
+                const destRoles = await destRolesRes.json();
+                for (const r of destRoles) {
+                    if (r.name !== '@everyone' && !r.managed) {
+                        await discordFetch(`/guilds/${destId}/roles/${r.id}`, 'DELETE');
+                        await sleep(350);
+                    }
+                }
+
+                //
